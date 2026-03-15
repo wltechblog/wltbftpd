@@ -254,9 +254,18 @@ func (s *FTPSession) handleCommand(cmd, args string) error {
 	case "PASV":
 		return s.handlePassive()
 	case "EPSV":
-		portStr := s.passiveAddr[strings.LastIndex(s.passiveAddr, ":")+1:]
-		port, _ := strconv.Atoi(portStr)
-		return s.sendLine("229 Entering Extended Passive Mode (|||" + strconv.Itoa(port) + "|)")
+		if s.passiveListener == nil {
+			listener, err := net.Listen("tcp", "0.0.0.0:0")
+			if err != nil {
+				return s.sendLine("425 Cannot open data connection")
+			}
+			addr := listener.Addr().(*net.TCPAddr)
+			s.passiveListener = listener
+			s.passiveAddr = addr.String()
+			s.passiveMode = true
+		}
+		addr := s.passiveListener.Addr().(*net.TCPAddr)
+		return s.sendLine("229 Entering Extended Passive Mode (|||" + strconv.Itoa(addr.Port) + "|)")
 	case "CWD", "XCWD":
 		return s.handleChangeDir(args)
 	case "CDUP", "XCUP":
@@ -295,7 +304,7 @@ func (s *FTPSession) handlePassive() error {
 		s.passiveListener.Close()
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		return s.sendLine("425 Cannot open data connection")
 	}

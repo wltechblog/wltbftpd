@@ -259,14 +259,19 @@ func (s *FTPSession) handleCommand(cmd, args string) error {
 		if s.passiveListener == nil {
 			listener, err := net.Listen("tcp", "0.0.0.0:0")
 			if err != nil {
+				log.Printf("EPSV: Failed to listen: %v", err)
 				return s.sendLine("425 Cannot open data connection")
 			}
 			addr := listener.Addr().(*net.TCPAddr)
 			s.passiveListener = listener
 			s.passiveAddr = addr.String()
 			s.passiveMode = true
+			log.Printf("EPSV: Created listener on port %d", addr.Port)
+		} else {
+			log.Printf("EPSV: Reusing existing listener")
 		}
 		addr := s.passiveListener.Addr().(*net.TCPAddr)
+		log.Printf("EPSV: Sending port %d to client", addr.Port)
 		return s.sendLine("229 Entering Extended Passive Mode (|||" + strconv.Itoa(addr.Port) + "|)")
 	case "CWD", "XCWD":
 		return s.handleChangeDir(args)

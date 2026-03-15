@@ -17,14 +17,14 @@ A simple, secure FTP server written in Go with support for multiple authenticati
 ### From Source
 
 ```bash
-git clone https://github.com/wltechblog/wltbftp.git
-cd wltbftp
-go build -o wltbftp
+git clone https://github.com/wltechblog/wltpftpd.git
+cd wltpftpd
+go build -o wltpftpd
 ```
 
 ### Binary Download
 
-Download the latest release from the [Releases](https://github.com/wltechblog/wltbftp/releases) page.
+Download the latest release from the [Releases](https://github.com/wltechblog/wltpftpd/releases) page.
 
 ## Configuration
 
@@ -76,13 +76,13 @@ Anonymous users can connect with any password (commonly using their email addres
 
 ```bash
 # Using only system authentication
-./wltbftp -addr ":2121" -system-auth=true
+./wltpftpd -addr ":2121" -system-auth=true
 
 # Using file-based authentication only
-./wltbftp -addr ":2121" -auth-file users.txt -system-auth=false
+./wltpftpd -addr ":2121" -auth-file users.txt -system-auth=false
 
 # Using both authentication methods
-./wltbftp -addr ":2121" -auth-file users.txt -system-auth=true
+./wltpftpd -addr ":2121" -auth-file users.txt -system-auth=true
 ```
 
 ### Connect with FTP Client
@@ -94,7 +94,7 @@ ftp localhost 2121
 Example session (authenticated user):
 ```
 Connected to localhost.
-220 Welcome to wltbftp FTP Server
+220 Welcome to wltpftpd FTP Server
 Name (localhost:squash): alice
 331 User name okay, need password
 Password: 
@@ -115,7 +115,7 @@ ftp> quit
 Anonymous access example:
 ```
 Connected to localhost.
-220 Welcome to wltbftp FTP Server
+220 Welcome to wltpftpd FTP Server
 Name (localhost:squash): anonymous
 331 User name okay, need password
 Password: 
@@ -125,7 +125,7 @@ Using binary mode to transfer files.
 ftp> pwd
 257 "/" is current directory
 ```
-wltbftp/
+wltpftpd/
 ├── main.go       # Entry point and CLI parsing
 ├── ftpserver.go  # FTP protocol implementation
 └── README.md     # This file
@@ -140,7 +140,7 @@ go test ./...
 ### Build
 
 ```bash
-go build -ldflags="-s -w" -o wltbftp
+go build -ldflags="-s -w" -o wltpftpd
 ```
 
 ## License

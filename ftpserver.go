@@ -228,13 +228,15 @@ func (s *FTPSession) handleCommand(cmd, args string) error {
 	switch cmd {
 	case "USER":
 		s.username = args
+		log.Printf("AUTH: User attempt - %s from %s", s.username, s.conn.RemoteAddr())
 		return s.sendLine("331 User name okay, need password")
 	case "PASS":
 		homedir, limitRoot, err := s.authManager.Authenticate(s.username, args)
 		if err != nil {
-			log.Printf("Authentication failed for user %s: %v", s.username, err)
+			log.Printf("AUTH: Failed login for user %s from %s: %v", s.username, s.conn.RemoteAddr(), err)
 			return s.sendLine("530 Not logged in")
 		}
+		log.Printf("AUTH: Successful login for user %s from %s", s.username, s.conn.RemoteAddr())
 		s.authenticated = true
 		s.basePath = homedir
 		s.limitRoot = limitRoot
@@ -287,6 +289,7 @@ func (s *FTPSession) handleCommand(cmd, args string) error {
 	case "RNFR":
 		return s.sendLine("350 Ready for RNTO")
 	case "RNTO":
+		log.Printf("FILE: Rename - user %s, new name: %s", s.username, args)
 		return s.sendLine("250 Rename successful")
 	case "SIZE":
 		return s.handleSize(args)
@@ -448,19 +451,23 @@ func (s *FTPSession) handleRetrieve(path string) error {
 	}
 	defer file.Close()
 
+	log.Printf("FILE: Download started - user %s, file %s from %s", s.username, fullPath, s.conn.RemoteAddr())
 	s.sendLine("150 Opening data connection")
 
 	dataConn, err := s.getDataConnection()
 	if err != nil {
+		log.Printf("FILE: Download failed - user %s, file %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("425 Cannot open data connection")
 	}
 	defer dataConn.Close()
 
 	_, err = io.Copy(dataConn, file)
 	if err != nil {
+		log.Printf("FILE: Download failed - user %s, file %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("426 Connection closed; transfer aborted")
 	}
 
+	log.Printf("FILE: Download complete - user %s, file %s", s.username, fullPath)
 	return s.sendLine("226 Transfer complete")
 }
 
@@ -480,19 +487,23 @@ func (s *FTPSession) handleStore(path string) error {
 	}
 	defer file.Close()
 
+	log.Printf("FILE: Upload started - user %s, file %s from %s", s.username, fullPath, s.conn.RemoteAddr())
 	s.sendLine("150 Opening data connection")
 
 	dataConn, err := s.getDataConnection()
 	if err != nil {
+		log.Printf("FILE: Upload failed - user %s, file %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("425 Cannot open data connection")
 	}
 	defer dataConn.Close()
 
 	_, err = io.Copy(file, dataConn)
 	if err != nil {
+		log.Printf("FILE: Upload failed - user %s, file %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("426 Connection closed; transfer aborted")
 	}
 
+	log.Printf("FILE: Upload complete - user %s, file %s", s.username, fullPath)
 	return s.sendLine("226 Transfer complete")
 }
 
@@ -508,9 +519,11 @@ func (s *FTPSession) handleDelete(path string) error {
 
 	err = os.Remove(fullPath)
 	if err != nil {
+		log.Printf("FILE: Delete failed - user %s, file %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("550 Cannot delete file")
 	}
 
+	log.Printf("FILE: Delete successful - user %s, file %s", s.username, fullPath)
 	return s.sendLine("250 Delete successful")
 }
 
@@ -526,9 +539,11 @@ func (s *FTPSession) handleRemoveDir(path string) error {
 
 	err = os.Remove(fullPath)
 	if err != nil {
+		log.Printf("FILE: Rmdir failed - user %s, directory %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("550 Cannot remove directory")
 	}
 
+	log.Printf("FILE: Rmdir successful - user %s, directory %s", s.username, fullPath)
 	return s.sendLine("250 Directory removed")
 }
 
@@ -544,9 +559,11 @@ func (s *FTPSession) handleMakeDir(path string) error {
 
 	err = os.MkdirAll(fullPath, 0755)
 	if err != nil {
+		log.Printf("FILE: Mkdir failed - user %s, directory %s, error: %v", s.username, fullPath, err)
 		return s.sendLine("550 Cannot create directory")
 	}
 
+	log.Printf("FILE: Mkdir successful - user %s, directory %s", s.username, fullPath)
 	return s.sendLine("257 Directory created")
 }
 

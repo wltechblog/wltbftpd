@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/msteinert/pam/v2"
 )
 
 type AuthManager struct {
@@ -117,6 +119,20 @@ func (am *AuthManager) Authenticate(username, password string) (string, bool, er
 		if err != nil {
 			return "", false, fmt.Errorf("user not found: %w", err)
 		}
+
+		tx, err := pam.StartFunc("login", username, func(s pam.Style, msg string) (string, error) {
+			if s == pam.PromptEchoOff || s == pam.PromptEchoOn {
+				return password, nil
+			}
+			return "", nil
+		})
+		if err != nil {
+			return "", false, fmt.Errorf("pam init failed: %w", err)
+		}
+		if err := tx.Authenticate(0); err != nil {
+			return "", false, errors.New("invalid password")
+		}
+
 		return u.HomeDir, true, nil
 	}
 
